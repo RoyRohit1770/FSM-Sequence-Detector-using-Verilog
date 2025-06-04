@@ -1,8 +1,10 @@
 module Sequence_Detector_MOORE_Verilog(
+    
     input clock,          // clock signal
     input reset,          // reset input
     input sequence_in,    // binary input
     output reg detector_out  // output of the sequence detector
+    
     );
 
     parameter Zero = 3'b000,       // "Zero" State
