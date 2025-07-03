@@ -1,75 +1,44 @@
-module Sequence_Detector_MOORE_Verilog(
-    
-    input clock,          // clock signal
-    input reset,          // reset input
-    input sequence_in,    // binary input
-    output reg detector_out  // output of the sequence detector
-    
-    );
+module Sequence_Detector_MOORE_Verilog (
+    input sequence_in,
+    input clock,
+    input reset,
+    output reg detector_out
+);
 
-    parameter Zero = 3'b000,       // "Zero" State
-              One = 3'b001,        // "One" State
-              OneZero = 3'b011,    // "OneZero" State
-              OneZeroOne = 3'b010,// "OneZeroOne" State
-              OneZeroOneOne = 3'b110; // "OneZeroOneOne" State
+    parameter S0 = 3'b000;
+    parameter S1 = 3'b001;
+    parameter S2 = 3'b010;
+    parameter S3 = 3'b011;
+    parameter S4 = 3'b100;
 
-    reg [2:0] current_state, next_state; // current and next state
+    reg [2:0] state, next_state;
 
-    // sequential memory of the Moore FSM
-    always @(posedge clock, posedge reset) begin
-        if (reset == 1)
-            current_state <= Zero;      // reset state
+    // State register
+    always @(posedge clock or posedge reset) begin
+        if (reset)
+            state <= S0;
         else
-            current_state <= next_state;
-    end 
+            state <= next_state;
+    end
 
-    // combinational logic to determine next state
-    always @(current_state, sequence_in) begin
-        case(current_state)
-            Zero: begin
-                if(sequence_in == 1)
-                    next_state = One;
-                else
-                    next_state = Zero;
-            end
-            One: begin
-                if(sequence_in == 0)
-                    next_state = OneZero;
-                else
-                    next_state = One;
-            end
-            OneZero: begin
-                if(sequence_in == 0)
-                    next_state = Zero;
-                else
-                    next_state = OneZeroOne;
-            end
-            OneZeroOne: begin
-                if(sequence_in == 0)
-                    next_state = OneZero;
-                else
-                    next_state = OneZeroOneOne;
-            end
-            OneZeroOneOne: begin
-                if(sequence_in == 0)
-                    next_state = OneZero;
-                else
-                    next_state = One;
-            end
-            default: next_state = Zero;
+    // Next-state logic
+    always @(*) begin
+        case (state)
+            S0: next_state = (sequence_in == 1) ? S1 : S0;
+            S1: next_state = (sequence_in == 0) ? S2 : S1;
+            S2: next_state = (sequence_in == 1) ? S3 : S0;
+            S3: next_state = (sequence_in == 1) ? S4 : S2;
+            S4: next_state = (sequence_in == 1) ? S1 : S2;
+            default: next_state = S0;
         endcase
     end
 
-    // output logic depends only on current state (Moore)
-    always @(current_state) begin
-        case(current_state)
-            Zero: detector_out = 0;
-            One: detector_out = 0;
-            OneZero: detector_out = 0;
-            OneZeroOne: detector_out = 0;
-            OneZeroOneOne: detector_out = 1;
-            default: detector_out = 0;
-        endcase
-    end 
+    // Output logic (Moore)
+    always @(*) begin
+        if (state == S4)
+            detector_out = 1;
+        else
+            detector_out = 0;
+    end
 
 endmodule
